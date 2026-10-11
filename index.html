@@ -105,7 +105,8 @@ cite{font-style:normal;font-size:12px;color:var(--muted)}
 .flow text{font-family:var(--body);fill:var(--fg);font-size:11px}
 .flow .cap{fill:var(--muted);font-size:11px}
 .flow .band{opacity:.5;transition:opacity .2s}
-.flow .band:hover{opacity:.85}
+.flow .band{cursor:pointer;stroke:transparent;stroke-width:6}.flow.hov .band{opacity:.15}.flow.hov .band.on{opacity:.9}
+[data-tip]{cursor:pointer}
 /* 카드 */
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
 .search{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
@@ -265,9 +266,9 @@ function toPeople(rows){
     const steps=path.filter((x,i)=>i===0||x!==path[i-1]);
     const toks=g("sk").split(/,\s*/).map(s=>s.trim()).filter(Boolean);
     const sk=toks.filter(t=>SKILLS.includes(t));
-    const free=toks.filter(t=>!SKILLS.includes(t)&&t!=="직접적으로는 없다").join(", ");
+    const free=toks.filter(t=>!SKILLS.includes(t)&&!/^(직접적으로는\s*)?(없|없음|없다|없습니다|딱히|별로|글쎄)/.test(t.replace(/\s/g,"").replace(/^(직접적으로는|특별히|딱히)/,""))&&!/^(없|-|x|X)$/.test(t)).join(", ");
     const none=toks.includes("직접적으로는 없다");
-    out.push({id:n,hb,dec:decade(hb),work,field,region:regOf(g("region")),first:first||field,steps,moved:steps.some(s=>s!==field),sk,free:free||(none?"직접적으로는 없다":""),ok:/^예/.test(g("ok"))});
+    out.push({id:n,hb,dec:decade(hb),work,field,region:regOf(g("region")),first:first||field,steps,moved:steps.some(s=>s!==field),sk,free,ok:/^예/.test(g("ok"))});
   });
   return out;
 }
@@ -301,7 +302,7 @@ function upsertBars(box,items,max,onclick){
     el.querySelector(".lab").textContent=it.label; el.querySelector(".n").textContent=it.n;
     const fl=el.querySelector(".fill"); fl.style.background=it.color;
     requestAnimationFrame(()=>fl.style.width=`calc((100% - 2.4em) * ${max?it.n/max:0})`);
-    el.title=`${it.label} ${it.n}명`;
+    el.dataset.tip=`${it.label} ${it.n}명`;
     if(box.children[i]!==el) box.insertBefore(el,box.children[i]||null);
   });
   keep.forEach(el=>el.remove());
@@ -315,7 +316,7 @@ function drawFields(){
   const decs=[...new Set(D.map(d=>d.dec))].sort();
   const maxN=Math.max(1,...decs.map(dc=>D.filter(d=>d.dec===dc).length));
   $("stack").innerHTML=decs.map(dc=>{const g=D.filter(d=>d.dec===dc),cc=count(g,"field");
-    const seg=FIELDS.filter(f=>cc.get(f)).map(f=>`<i style="flex-grow:${cc.get(f)};background:${fc(f)}" title="${esc(sn(f))} ${cc.get(f)}명"></i>`).join("");
+    const seg=FIELDS.filter(f=>cc.get(f)).map(f=>`<i style="flex-grow:${cc.get(f)};background:${fc(f)}" data-tip="${esc(sn(f))} ${cc.get(f)}명"></i>`).join("");
     return `<div class="srow"><span>${dc}년대</span><span class="sbar"><span class="sseg" style="width:calc((100% - 3.6em) * ${g.length/maxN})">${seg}</span><span class="n">${g.length}명</span></span></div>`}).join("");
   const used=new Set(D.map(d=>d.field));
   $("legend").innerHTML=FIELDS.filter(f=>used.has(f)).map(f=>`<span><i class="sw" style="background:${fc(f)}"></i>${esc(sn(f))}</span>`).join("");
@@ -345,7 +346,7 @@ function drawMap(fresh){
   });
   $("leads").innerHTML=leads.join("");
   $("labels").innerHTML=labels.join("");
-  $("dots").innerHTML=dots.map(o=>`<circle data-i="${o.d.id}" cx="${o.x.toFixed(1)}" cy="${o.y.toFixed(1)}" r="${R}" style="fill:${fc(o.d.field)}"${fresh.has(o.d.id)?' class="new"':""}><title>${esc(o.d.hb)}학번 · ${esc(sn(o.d.field))}${o.d.work?" · "+esc(o.d.work):""}</title></circle>`).join("");
+  $("dots").innerHTML=dots.map(o=>`<circle data-i="${o.d.id}" cx="${o.x.toFixed(1)}" cy="${o.y.toFixed(1)}" r="${R}" style="fill:${fc(o.d.field)}"${fresh.has(o.d.id)?' class="new"':""} data-tip="${esc(o.d.hb)}학번 · ${esc(sn(o.d.field))}${o.d.work?" · "+esc(o.d.work):""}"/>`).join("");
   // 해외 상자는 점 아래로
   const ov=$("labels").querySelector(".ovs"); if(ov) $("leads").appendChild(ov);
   $("qleg").innerHTML=`<span>지역 인원</span>`+[[1,"1명"],[2,"2명"],[3,"3~4명"],[4,"5~9명"],[5,"10명 이상"]].map(([s,l])=>`<span><i class="sq" style="background:var(--q${s})"></i>${l}</span>`).join("");
@@ -359,7 +360,7 @@ function drawPanel(){
   const cc=count(g,"field");
   $("panel").innerHTML=`<div class="regtabs">${present.map(x=>`<button class="chip" data-r="${x}" aria-pressed="${x===r}">${esc(rs(x))} <em>${c.get(x)}</em></button>`).join("")}</div>
   <h3>${esc(rs(r))}<em>${g.length}명</em></h3>
-  <div class="mini">${FIELDS.filter(f=>cc.get(f)).map(f=>`<i style="flex-grow:${cc.get(f)};background:${fc(f)}" title="${esc(sn(f))} ${cc.get(f)}"></i>`).join("")}</div>
+  <div class="mini">${FIELDS.filter(f=>cc.get(f)).map(f=>`<i style="flex-grow:${cc.get(f)};background:${fc(f)}" data-tip="${esc(sn(f))} ${cc.get(f)}명"></i>`).join("")}</div>
   <ul>${g.map(d=>`<li><i class="sw" style="background:${fc(d.field)}"></i><span class="hb">${d.hb}</span><span>${esc(d.work||sn(d.field))}</span></li>`).join("")}</ul>`;
   $("panel").querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{selReg=b.dataset.r;drawMap(new Set())}));
 }
@@ -393,7 +394,7 @@ function drawFlow(){
   const bands=pl.map(p=>{const h=p.v*unit;const y0=lp[p.a].y+lp[p.a].off;lp[p.a].off+=h;return{...p,h,y0}});
   bands.slice().sort((x,y)=>FIELDS.indexOf(x.b)-FIELDS.indexOf(y.b)||FIELDS.indexOf(x.a)-FIELDS.indexOf(y.a)).forEach(b=>{b.y1=rp[b.b].y+rp[b.b].off;rp[b.b].off+=b.h});
   const mx=(LX+BW+RX)/2;
-  let s=bands.map(b=>{const x0=LX+BW,x1=RX;return `<path class="band" style="fill:${fc(b.b)}" d="M${x0},${b.y0}C${mx},${b.y0} ${mx},${b.y1} ${x1},${b.y1}L${x1},${b.y1+b.h}C${mx},${b.y1+b.h} ${mx},${b.y0+b.h} ${x0},${b.y0+b.h}Z"><title>${esc(sn(b.a))} → ${esc(sn(b.b))} ${b.v}명</title></path>`}).join("");
+  let s=bands.map(b=>{const x0=LX+BW,x1=RX;return `<path class="band" style="fill:${fc(b.b)}" data-tip="${esc(sn(b.a))} → ${esc(sn(b.b))} ${b.v}명" d="M${x0},${b.y0}C${mx},${b.y0} ${mx},${b.y1} ${x1},${b.y1}L${x1},${b.y1+b.h}C${mx},${b.y1+b.h} ${mx},${b.y0+b.h} ${x0},${b.y0+b.h}Z"/>`}).join("");
   s+=lk.map(k=>`<rect x="${LX}" y="${lp[k].y}" width="${BW}" height="${Math.max(1,lp[k].h)}" style="fill:${fc(k)}"/><text x="${LX-6}" y="${lp[k].y+lp[k].h/2+4}" text-anchor="end">${esc(sn(k))} ${L.get(k)}</text>`).join("");
   s+=rk.map(k=>`<rect x="${RX}" y="${rp[k].y}" width="${BW}" height="${Math.max(1,rp[k].h)}" style="fill:${fc(k)}"/><text x="${RX+BW+6}" y="${rp[k].y+rp[k].h/2+4}">${esc(sn(k))} ${Rc.get(k)}</text>`).join("");
   s+=`<text class="cap" x="${LX+BW/2}" y="${H}" text-anchor="middle">처음 일</text><text class="cap" x="${RX+BW/2}" y="${H}" text-anchor="middle">지금 일</text>`;
@@ -443,6 +444,18 @@ async function load(){
     $("asof").textContent=lastOK?`${stamp(lastOK)} 기준 (새 자료를 잠시 못 불러옴)`:"설문 자료를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요.";
   }
 }
+
+/* ── 말풍선: 마우스를 올리거나 손가락으로 누르면 인원 ── */
+(function(){const tip=()=>$("tip");let cur=null;
+ function show(el,x,y){const t=tip();t.textContent=el.dataset.tip;t.hidden=false;
+   t.style.left=Math.max(8,Math.min(x+14,innerWidth-t.offsetWidth-8))+"px";t.style.top=Math.max(8,y-36)+"px";
+   if(el.classList.contains("band")){$("flow").classList.add("hov");if(cur&&cur!==el)cur.classList.remove("on");el.classList.add("on")}
+   cur=el}
+ function hide(){tip().hidden=true;$("flow").classList.remove("hov");if(cur)cur.classList.remove("on");cur=null}
+ document.addEventListener("mousemove",e=>{const el=e.target.closest&&e.target.closest("[data-tip]");if(el)show(el,e.clientX,e.clientY);else if(cur)hide()});
+ document.addEventListener("click",e=>{const el=e.target.closest&&e.target.closest("[data-tip]");if(el&&e.pointerType!=="mouse")show(el,e.clientX,e.clientY);else if(!el)hide()});
+ addEventListener("scroll",()=>{if(cur)hide()},{passive:true});
+})();
 $("formlink").href=FORM_URL;
 $("q").addEventListener("input",()=>drawCards());
 $("reg").addEventListener("change",()=>drawCards());
