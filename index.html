@@ -281,12 +281,14 @@ function count(arr,key){const m=new Map;arr.forEach(x=>{const k=typeof key==="fu
 function tipOn(el,txt){el.addEventListener("mousemove",e=>{const t=$("tip");t.textContent=txt;t.hidden=false;t.style.left=Math.min(e.clientX+12,innerWidth-t.offsetWidth-8)+"px";t.style.top=(e.clientY-30)+"px"});el.addEventListener("mouseleave",()=>$("tip").hidden=true)}
 
 function drawHeader(){
-  const n=D.length, fields=new Set(D.map(d=>d.field)).size;
+  // 국문학을 바탕으로 하는 분야: 교육·출판·편집·문학·창작·연구·학계
+  const KMAJOR=["교육","출판·편집","문학·창작","연구·학계"];
+  const n=D.length, based=D.filter(d=>KMAJOR.includes(d.field)).length;
   const moved=D.filter(d=>d.moved).length, ok=D.filter(d=>d.ok).length;
   const hbs=D.map(d=>+d.hb).map(y=>y>=40?1900+y:2000+y).sort((a,b)=>a-b);
   const span=n?`${String(hbs[0]).slice(2)}~${String(hbs[n-1]).slice(2)}학번`:"";
   $("lede").textContent=`국문과를 나와 어디로 갔을까. 70주년을 맞아 동문 ${n}명(${span})이 지금 하는 일과 사는 곳, 걸어온 길, 국문과에서 배워 아직도 쓰는 것을 적어 보내 주었습니다. 이름은 싣지 않고 학번과 일터만 보여 줍니다.`;
-  const T=[[n,"명이 답했다"],[fields,"개 분야에서 일한다"],[moved,"명은 분야를 옮겨 왔다"],[ok,"명은 후배 질문에 답하겠다"]];
+  const T=[[n,"명이 답했다"],[based,"명은 국문학을 기반으로 일한다"],[moved,"명은 분야를 옮겨 왔다"],[ok,"명은 후배 질문에 답하겠다"]];
   const tiles=$("tiles"); const old=[...tiles.querySelectorAll("b")].map(b=>b.textContent);
   tiles.innerHTML=T.map(([v,l],i)=>`<div class="tile${old.length&&old[i]!=String(v)?" bump":""}"><b>${v}</b><span>${l}</span></div>`).join("");
   $("footbig").innerHTML=`${n}명 가운데 <b>${ok}명</b>이 "후배가 진로를 물어 오면 답해 주겠다"고 했습니다.`;
